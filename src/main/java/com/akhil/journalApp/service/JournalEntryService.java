@@ -1,11 +1,13 @@
 package com.akhil.journalApp.service;
 
 import com.akhil.journalApp.entity.JournalEntry;
+import com.akhil.journalApp.entity.User;
 import com.akhil.journalApp.repository.JournalEntryRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,8 +17,15 @@ public class JournalEntryService {
     @Autowired
     private JournalEntryRepository journalEntryRepository;
 
-    public JournalEntry addJournal(JournalEntry newJournal) {
-        return journalEntryRepository.save(newJournal);
+    @Autowired
+    private UserService userService;
+
+    public void addJournal(JournalEntry newJournal, String userName) {
+        newJournal.setDate(LocalDateTime.now());
+        User user = userService.findByUserName(userName);
+        JournalEntry saved =  journalEntryRepository.save(newJournal);
+        user.getJournalEntryList().add(saved);
+        userService.addUser(user);
     }
 
     public List<JournalEntry> getJournals() {
@@ -27,9 +36,11 @@ public class JournalEntryService {
         return journalEntryRepository.findById(id);
     }
 
-    public boolean deleteJournalById(ObjectId id) {
+    public void deleteJournalById(ObjectId id, String userName) {
+        User user = userService.findByUserName(userName);
+        user.getJournalEntryList().removeIf(x -> x.getId().equals(id));
+        userService.addUser(user);
         journalEntryRepository.deleteById(id);
-        return true;
     }
 
     public JournalEntry updateJournal(JournalEntry updatedJournal) {
